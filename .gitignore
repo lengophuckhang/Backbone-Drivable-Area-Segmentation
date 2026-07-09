@@ -1,0 +1,15 @@
+source/benchmark.py
+source/model.py
+source/inference.py
+source/train.py
+source/utils.py
+source/val.py
+
+# Checkpoint files
+*.pt
+source/runs/**
+source/demo/uploads/
+
+# Bytecode
+__pycache__/
+*.pyc

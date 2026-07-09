@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drivable Area Segmentation - Demo</title>
+    <style>
+        /* ===== Reset & Base ===== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0b0e17;
+            color: #e8edf5;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            background: linear-gradient(135deg, #0f1420 0%, #1a1f2f 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+        }
+        .header-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #00d4ff, #007bff);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .logo h1 {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d4ff, #7c5cfc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .logo span {
+            font-size: 13px;
+            color: #8892b0;
+            -webkit-text-fill-color: #8892b0;
+        }
+        .header-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #8892b0;
+        }
+        .header-stats strong { color: #e8edf5; }
+
+        /* ===== Main ===== */
+        .main {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 28px 24px;
+        }
+
+        /* ===== Controls Panel ===== */
+        .controls {
+            background: linear-gradient(135deg, #141a2a, #1a2035);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 28px;
+        }
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 24px;
+            align-items: flex-end;
+        }
+        .controls-row + .controls-row {
+            margin-top: 14px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .control-group label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #8892b0;
+        }
+        .control-group select,
+        .control-group input[type="file"],
+        .control-group input[type="range"] {
+            width: 100%;
+        }
+        .control-group select {
+            background: #1e2640;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #e8edf5;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .control-group select:focus {
+            border-color: #007bff;
+        }
+        .control-group select option {
+            background: #1e2640;
+        }
+
+        /* Width helpers for control groups */
+        .ctrl-model { flex: 2; min-width: 200px; }
+        .ctrl-alpha { flex: 1; min-width: 140px; }
+        .ctrl-btn   { flex: 0 0 auto; }
+        .ctrl-img   { flex: 1; min-width: 200px; }
+        .ctrl-gt    { flex: 1; min-width: 200px; }
+
+        .file-upload-wrapper {
+            position: relative;
+        }
+        .file-upload-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            top: 0; left: 0;
+        }
+        .file-upload-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #1e2640;
+            border: 1px dashed rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #8892b0;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .file-upload-wrapper:hover .file-upload-btn {
+            border-color: #007bff;
+            color: #e8edf5;
+        }
+        .file-upload-btn.has-file {
+            border-color: #00c853;
+            color: #00c853;
+        }
+
+        .range-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .range-wrapper input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: #1e2640;
+            outline: none;
+        }
+        .range-wrapper input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff, #007bff);
+            cursor: pointer;
+            border: 2px solid #141a2a;
+        }
+        .range-value {
+            font-size: 14px;
+            font-weight: 600;
+            min-width: 36px;
+            text-align: center;
+            color: #00d4ff;
+        }
+
+        .btn-predict {
+            background: linear-gradient(135deg, #00d4ff, #007bff);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 32px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-predict:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,123,255,0.3);
+        }
+        .btn-predict:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-predict.loading .btn-text { display: none; }
+        .btn-predict.loading .btn-loader { display: inline-block; }
+        .btn-loader { display: none; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== Model Info ===== */
+        .model-info {
+            display: none;
+            background: rgba(0, 180, 255, 0.05);
+            border: 1px solid rgba(0, 180, 255, 0.12);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 28px;
+            font-size: 13px;
+        }
+        .model-info.visible { display: flex; flex-wrap: wrap; gap: 16px 28px; }
+        .metric-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .metric-item .metric-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #8892b0;
+        }
+        .metric-item .metric-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #00d4ff;
+        }
+        .metric-item .metric-value.green { color: #00c853; }
+        .metric-item .metric-value.orange { color: #ff9100; }
+        .metric-item .metric-value.purple { color: #7c5cfc; }
+
+        /* ===== Ground Truth Upload ===== */
+        .gt-upload-wrapper {
+            position: relative;
+        }
+        .gt-upload-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            top: 0; left: 0;
+        }
+        .gt-upload-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #1e2640;
+            border: 1px dashed rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #8892b0;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .gt-upload-wrapper:hover .gt-upload-btn {
+            border-color: #7c5cfc;
+            color: #e8edf5;
+        }
+        .gt-upload-btn.has-file {
+            border-color: #7c5cfc;
+            color: #7c5cfc;
+        }
+
+        /* ===== Results ===== */
+        .results {
+            display: none;
+            gap: 24px;
+            grid-template-columns: 1fr 1fr;
+        }
+        .results.visible {
+            display: grid;
+        }
+        .results.has-gt {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #141a2a, #1a2035);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .result-card:hover {
+            transform: translateY(-2px);
+        }
+        .result-card .card-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .result-card .card-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .result-card .card-header .badge {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: rgba(0,180,255,0.1);
+            color: #00d4ff;
+        }
+        .result-card .card-image {
+            position: relative;
+            width: 100%;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0b0e17;
+        }
+        .result-card .card-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .result-card .card-footer {
+            padding: 12px 20px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            font-size: 13px;
+            color: #8892b0;
+            text-align: center;
+        }
+
+        /* ===== Stats bar ===== */
+        .stats-bar {
+            display: none;
+            grid-column: 1 / -1;
+            background: rgba(0, 180, 255, 0.05);
+            border: 1px solid rgba(0, 180, 255, 0.12);
+            border-radius: 12px;
+            padding: 16px 24px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .stats-bar.visible { display: flex; }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .stat-item .stat-icon { font-size: 20px; }
+        .stat-item .stat-value { font-weight: 700; color: #00d4ff; }
+
+        /* ===== Empty state ===== */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #8892b0;
+        }
+        .empty-state .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.4;
+        }
+        .empty-state h2 {
+            font-size: 20px;
+            color: #e8edf5;
+            margin-bottom: 8px;
+        }
+
+        /* ===== Preview 640x384 ===== */
+        .preview-container {
+            width: 100%;
+            background: #0b0e17;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 13px;
+            color: #8892b0;
+        }
+        .preview-size-badge {
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 20px;
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+        }
+        .preview-image-wrapper {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #070a12;
+            min-height: 100px;
+        }
+        .preview-image-wrapper img {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            display: block;
+        }
+
+        /* ===== GT Size Mismatch Warning ===== */
+        .gt-warning {
+            display: none;
+            grid-column: 1 / -1;
+            background: rgba(255, 170, 0, 0.1);
+            border: 1px solid rgba(255, 170, 0, 0.3);
+            border-radius: 10px;
+            padding: 12px 18px;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #ffc107;
+        }
+        .gt-warning.visible { display: flex; }
+        .gt-warning .warn-icon { font-size: 20px; flex-shrink: 0; }
+        .gt-warning .warn-text strong { color: #ffc107; }
+
+        /* ===== Error toast ===== */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #ff1744, #d50000);
+            color: #fff;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 32px rgba(255,23,68,0.3);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s ease;
+            z-index: 999;
+            max-width: 400px;
+        }
+        .toast.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            .results.visible,
+            .results.has-gt { grid-template-columns: 1fr; }
+            .header-inner { flex-direction: column; align-items: flex-start; }
+            .header-stats { width: 100%; justify-content: flex-start; }
+            .controls-row { flex-direction: column; }
+            .ctrl-model,
+            .ctrl-alpha,
+            .ctrl-img,
+            .ctrl-gt { min-width: 100%; flex: none; }
+            .ctrl-btn { width: 100%; }
+            .btn-predict { width: 100%; }
+            .model-info.visible { flex-direction: column; gap: 10px; }
+            .stats-bar.visible { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <div class="logo-icon">🚗</div>
+                <div>
+                    <h1>Drivable Area Segmentation</h1>
+                    <span>Phân đoạn làn đường &bull; Khóa luận tốt nghiệp</span>
+                </div>
+            </div>
+            <div class="header-stats">
+                <span>📦 <strong id="modelCount">{{ models|length }}</strong> models</span>
+                <span>⚡ <strong id="deviceInfo">Đang kiểm tra...</strong></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <div class="main">
+        <!-- Controls -->
+        <div class="controls">
+            <!-- Row 1: Model + Alpha + Button -->
+            <div class="controls-row">
+                <div class="control-group ctrl-model">
+                    <label for="modelSelect">🧠 Model</label>
+                    <select id="modelSelect">
+                        {% for m in models %}
+                        <option value="{{ m.name }}" {% if m.name == default_model %}selected{% endif %}
+                            data-iou="{{ m.get('iou_da', '') }}"
+                            data-f1="{{ m.get('f1', '') }}"
+                            data-fps="{{ m.get('fps', '') }}"
+                            data-params="{{ m.get('params', '') }}"
+                            data-gflops="{{ m.get('gflops', '') }}">
+                            {{ m.name }}
+                            {% if 'iou_da' in m %}— IoU_DA: {{ "%.4f"|format(m.iou_da) }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="control-group ctrl-alpha">
+                    <label for="alphaSlider">🎨 Độ trong suốt</label>
+                    <div class="range-wrapper">
+                        <input type="range" id="alphaSlider" min="0.1" max="0.9" step="0.05" value="0.45">
+                        <span class="range-value" id="alphaValue">0.45</span>
+                    </div>
+                </div>
+
+                <button class="btn-predict ctrl-btn" id="predictBtn" disabled>
+                    <span class="btn-text">🚀 Phân đoạn</span>
+                    <span class="btn-loader"></span>
+                </button>
+            </div>
+
+            <!-- Row 2: Image Input + Ground Truth -->
+            <div class="controls-row">
+                <div class="control-group ctrl-img">
+                    <label for="imageInput">🖼️ Ảnh đầu vào</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="imageInput" accept=".jpg,.jpeg,.png">
+                        <div class="file-upload-btn" id="fileUploadBtn">
+                            <span>📁</span>
+                            <span id="fileName">Chọn ảnh (JPG)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group ctrl-gt">
+                    <label for="gtInput">🏷️ Ground Truth (tuỳ chọn)</label>
+                    <div class="gt-upload-wrapper">
+                        <input type="file" id="gtInput" accept=".jpg,.jpeg,.png">
+                        <div class="gt-upload-btn" id="gtUploadBtn">
+                            <span>🏷️</span>
+                            <span id="gtFileName">Chọn mask ground truth</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 3: Preview 640x384 -->
+            <div class="controls-row" id="previewRow" style="display:none;">
+                <div class="preview-container">
+                    <div class="preview-header">
+                        <span>📐 Preview — 640 × 384</span>
+                        <span class="preview-size-badge">Đã resize</span>
+                    </div>
+                    <div class="preview-image-wrapper">
+                        <img id="previewImage" alt="Preview 640x384">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Info -->
+        <div class="model-info" id="modelInfo">
+            <div class="metric-item">
+                <span class="metric-label">IoU Drivable Area</span>
+                <span class="metric-value green" id="miouDisplay">—</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-label">F1 Score</span>
+                <span class="metric-value orange" id="f1Display">—</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-label">FPS</span>
+                <span class="metric-value purple" id="fpsDisplay">—</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-label">Params</span>
+                <span class="metric-value" id="paramsDisplay">—</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-label">GFLOPs</span>
+                <span class="metric-value" id="gflopsDisplay">—</span>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="results" id="results">
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">🛣️</div>
+                <h2>Chưa có kết quả</h2>
+                <p>Chọn ảnh và nhấn "Phân đoạn" để bắt đầu dự đoán vùng làn đường.</p>
+            </div>
+
+            <div class="result-card" id="originalCard" style="display:none;">
+                <div class="card-header">
+                    <h3>📷 Ảnh gốc</h3>
+                    <span class="badge">Input</span>
+                </div>
+                <div class="card-image">
+                    <img id="originalImage" alt="Ảnh gốc">
+                </div>
+                <div class="card-footer">
+                    Ảnh đầu vào
+                </div>
+            </div>
+
+            <div class="result-card" id="resultCard" style="display:none;">
+                <div class="card-header">
+                    <h3>🎯 Kết quả phân đoạn</h3>
+                    <span class="badge">Output</span>
+                </div>
+                <div class="card-image">
+                    <img id="resultImage" alt="Kết quả phân đoạn">
+                </div>
+                <div class="card-footer">
+                    Vùng màu xanh là <strong>Drivable Area</strong> (làn đường có thể lái)
+                </div>
+            </div>
+
+            <!-- GT size mismatch warning -->
+            <div class="gt-warning" id="gtWarning">
+                <span class="warn-icon">⚠️</span>
+                <span class="warn-text">
+                    <strong>Kích thước không khớp!</strong>
+                    Ảnh ground truth có kích thước khác với ảnh gốc. Đã tự động resize để hiển thị.
+                </span>
+            </div>
+
+            <div class="result-card" id="gtCard" style="display:none;">
+                <div class="card-header">
+                    <h3>🏷️ Ground Truth</h3>
+                    <span class="badge">Reference</span>
+                </div>
+                <div class="card-image">
+                    <img id="gtImage" alt="Ground truth">
+                </div>
+                <div class="card-footer">
+                    Ảnh ground truth gốc — dùng để so sánh với kết quả dự đoán
+                </div>
+            </div>
+
+            <!-- Stats bar -->
+            <div class="stats-bar" id="statsBar">
+                <div class="stat-item">
+                    <span class="stat-icon">📐</span>
+                    <span>Drivable Area: <span class="stat-value" id="drivablePct">0%</span></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">🧠</span>
+                    <span>Model: <span class="stat-value" id="resultModel">—</span></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">⚡</span>
+                    <span>Thời gian: <span class="stat-value" id="inferenceTime">—</span></span>
+                </div>
+            </div>
+
+            <!-- So sánh metrics (chỉ hiện khi có ground truth) -->
+            <div class="stats-bar" id="gtMetricsBar">
+                <div class="stat-item">
+                    <span class="stat-icon">🎯</span>
+                    <span>IoU vs GT: <span class="stat-value" id="gtIou">—</span></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">📊</span>
+                    <span>F1 vs GT: <span class="stat-value" id="gtF1">—</span></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">🎯</span>
+                    <span>Precision: <span class="stat-value" id="gtPrecision">—</span></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">🎯</span>
+                    <span>Recall: <span class="stat-value" id="gtRecall">—</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ===== DOM Elements =====
+        const modelSelect = document.getElementById('modelSelect');
+        const imageInput = document.getElementById('imageInput');
+        const fileUploadBtn = document.getElementById('fileUploadBtn');
+        const fileName = document.getElementById('fileName');
+        const alphaSlider = document.getElementById('alphaSlider');
+        const alphaValue = document.getElementById('alphaValue');
+        const predictBtn = document.getElementById('predictBtn');
+
+        const modelInfo = document.getElementById('modelInfo');
+        const miouDisplay = document.getElementById('miouDisplay');
+        const f1Display = document.getElementById('f1Display');
+        const fpsDisplay = document.getElementById('fpsDisplay');
+        const paramsDisplay = document.getElementById('paramsDisplay');
+        const gflopsDisplay = document.getElementById('gflopsDisplay');
+
+        const results = document.getElementById('results');
+        const emptyState = document.getElementById('emptyState');
+        const originalCard = document.getElementById('originalCard');
+        const resultCard = document.getElementById('resultCard');
+        const gtCard = document.getElementById('gtCard');
+        const originalImage = document.getElementById('originalImage');
+        const resultImage = document.getElementById('resultImage');
+        const gtImage = document.getElementById('gtImage');
+        const statsBar = document.getElementById('statsBar');
+        const gtMetricsBar = document.getElementById('gtMetricsBar');
+        const drivablePct = document.getElementById('drivablePct');
+        const resultModel = document.getElementById('resultModel');
+        const inferenceTime = document.getElementById('inferenceTime');
+        const gtIou = document.getElementById('gtIou');
+        const gtF1 = document.getElementById('gtF1');
+        const gtPrecision = document.getElementById('gtPrecision');
+        const gtRecall = document.getElementById('gtRecall');
+
+        const gtWarning = document.getElementById('gtWarning');
+        const gtInput = document.getElementById('gtInput');
+        const gtUploadBtn = document.getElementById('gtUploadBtn');
+        const gtFileName = document.getElementById('gtFileName');
+
+        const toast = document.getElementById('toast');
+        const deviceInfo = document.getElementById('deviceInfo');
+
+        let selectedFile = null;
+        let selectedGtFile = null;
+        let resizedImageBlob = null;
+
+        // Canvas để resize ảnh xuống 640x384 ngay trên client
+        const resizeCanvas = document.createElement('canvas');
+        resizeCanvas.width = 640;
+        resizeCanvas.height = 384;
+        const resizeCtx = resizeCanvas.getContext('2d');
+
+        // ===== Device check =====
+        async function checkDevice() {
+            try {
+                const res = await fetch('/api/models');
+                if (res.ok) deviceInfo.textContent = '✅ GPU ready' + (navigator.gpu ? '' : '');
+                else deviceInfo.textContent = '⚠️ Server connected';
+            } catch {
+                deviceInfo.textContent = '❌ Server offline';
+            }
+        }
+        checkDevice();
+
+        // ===== Model Info Update =====
+        function updateModelInfo() {
+            const opt = modelSelect.options[modelSelect.selectedIndex];
+            const iou = opt.dataset.iou;
+            const f1 = opt.dataset.f1;
+            const fps = opt.dataset.fps;
+            const params = opt.dataset.params;
+            const gflops = opt.dataset.gflops;
+
+            if (iou) {
+                modelInfo.classList.add('visible');
+                miouDisplay.textContent = parseFloat(iou).toFixed(4);
+                f1Display.textContent = parseFloat(f1).toFixed(4);
+                fpsDisplay.textContent = parseFloat(fps).toFixed(1) + ' fps';
+                paramsDisplay.textContent = params ? formatNumber(parseInt(params)) : '—';
+                gflopsDisplay.textContent = gflops ? parseFloat(gflops).toFixed(2) + ' G' : '—';
+            } else {
+                modelInfo.classList.remove('visible');
+            }
+        }
+
+        function formatNumber(n) {
+            if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+            if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+            return n.toString();
+        }
+
+        modelSelect.addEventListener('change', updateModelInfo);
+        updateModelInfo();
+
+        // ===== File Input — Resize ngay trên client =====
+        imageInput.addEventListener('change', function(e) {
+            selectedFile = e.target.files[0];
+            if (selectedFile) {
+                fileName.textContent = selectedFile.name;
+                fileUploadBtn.classList.add('has-file');
+                predictBtn.disabled = false;
+
+                // Resize ảnh về 640x384 bằng canvas
+                const img = new Image();
+                img.onload = function() {
+                    // Vẽ canvas với kích thước chính xác 640x384
+                    resizeCtx.clearRect(0, 0, 640, 384);
+                    resizeCtx.drawImage(img, 0, 0, 640, 384);
+
+                    // Hiển thị preview
+                    const previewImg = document.getElementById('previewImage');
+                    previewImg.src = resizeCanvas.toDataURL('image/jpeg');
+                    document.getElementById('previewRow').style.display = 'flex';
+
+                    // Lưu blob để gửi lên server
+                    resizeCanvas.toBlob(function(blob) {
+                        resizedImageBlob = blob;
+                    }, 'image/jpeg', 0.95);
+
+                    // Giải phóng bộ nhớ
+                    URL.revokeObjectURL(img.src);
+                };
+                img.src = URL.createObjectURL(selectedFile);
+            } else {
+                fileName.textContent = 'Chọn ảnh (JPG, PNG)';
+                fileUploadBtn.classList.remove('has-file');
+                predictBtn.disabled = true;
+                document.getElementById('previewRow').style.display = 'none';
+                resizedImageBlob = null;
+            }
+        });
+
+        // ===== Ground Truth File Input =====
+        gtInput.addEventListener('change', function(e) {
+            selectedGtFile = e.target.files[0];
+            if (selectedGtFile) {
+                gtFileName.textContent = selectedGtFile.name;
+                gtUploadBtn.classList.add('has-file');
+            } else {
+                gtFileName.textContent = 'Chọn mask ground truth';
+                gtUploadBtn.classList.remove('has-file');
+            }
+        });
+
+        // ===== Alpha Slider =====
+        alphaSlider.addEventListener('input', function() {
+            alphaValue.textContent = parseFloat(this.value).toFixed(2);
+        });
+
+        // ===== Toast =====
+        let toastTimeout;
+
+        function showToast(message, duration = 4000) {
+            toast.textContent = message;
+            toast.classList.add('visible');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.remove('visible'), duration);
+        }
+
+        // ===== Predict =====
+        predictBtn.addEventListener('click', async function() {
+            if (!selectedFile) {
+                showToast('Vui lòng chọn ảnh trước!');
+                return;
+            }
+
+            // Nếu chưa có blob (resize chưa xong), dùng file gốc
+            let imageToSend = resizedImageBlob || selectedFile;
+
+            // Đảm bảo tên file có đuôi .jpg (vì canvas output là JPEG)
+            const baseName = selectedFile.name.replace(/\.[^/.]+$/, '');
+            const sendFileName = resizedImageBlob ? baseName + '.jpg' : selectedFile.name;
+
+            const formData = new FormData();
+            formData.append('image', imageToSend, sendFileName);
+            formData.append('model', modelSelect.value);
+            formData.append('alpha', alphaSlider.value);
+            // Gửi luôn kích thước đã resize để server biết
+            formData.append('img_h', '384');
+            formData.append('img_w', '640');
+            if (selectedGtFile) {
+                formData.append('ground_truth', selectedGtFile);
+            }
+
+            // UI loading
+            predictBtn.classList.add('loading');
+            predictBtn.disabled = true;
+            statsBar.classList.remove('visible');
+            gtMetricsBar.classList.remove('visible');
+
+            const t0 = performance.now();
+
+            try {
+                const res = await fetch('/api/predict', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Lỗi không xác định');
+                }
+
+                // Hiển thị kết quả
+                emptyState.style.display = 'none';
+                originalCard.style.display = 'block';
+                resultCard.style.display = 'block';
+                results.classList.add('visible');
+                results.classList.remove('has-gt');
+
+                originalImage.src = 'data:image/png;base64,' + data.original;
+                resultImage.src = 'data:image/png;base64,' + data.result;
+
+                // Ground truth
+                if (data.ground_truth) {
+                    gtCard.style.display = 'block';
+                    results.classList.add('has-gt');
+                    gtImage.src = 'data:image/png;base64,' + data.ground_truth;
+
+                    // Cảnh báo nếu kích thước không khớp
+                    if (data.gt_size_mismatch) {
+                        gtWarning.classList.add('visible');
+                    } else {
+                        gtWarning.classList.remove('visible');
+                    }
+
+                    // Metrics so sánh
+                    if (data.gt_metrics) {
+                        gtMetricsBar.classList.add('visible');
+                        gtIou.textContent = data.gt_metrics.iou_gt;
+                        gtF1.textContent = data.gt_metrics.f1_gt;
+                        gtPrecision.textContent = data.gt_metrics.precision_gt;
+                        gtRecall.textContent = data.gt_metrics.recall_gt;
+                    }
+                } else {
+                    gtCard.style.display = 'none';
+                    gtWarning.classList.remove('visible');
+                }
+
+                // Stats
+                statsBar.classList.add('visible');
+                drivablePct.textContent = data.drivable_pct + '%';
+                resultModel.textContent = data.model;
+
+                const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
+                inferenceTime.textContent = elapsed + 's';
+
+            } catch (err) {
+                showToast('❌ ' + err.message);
+                console.error(err);
+            } finally {
+                predictBtn.classList.remove('loading');
+                predictBtn.disabled = false;
+            }
+        });
+
+        // ===== Drag & Drop =====
+        document.addEventListener('dragover', e => e.preventDefault());
+        document.addEventListener('drop', e => e.preventDefault());
+
+        fileUploadBtn.addEventListener('dragover', e => {
+            e.preventDefault();
+            fileUploadBtn.style.borderColor = '#00d4ff';
+        });
+        fileUploadBtn.addEventListener('dragleave', () => {
+            fileUploadBtn.style.borderColor = '';
+        });
+        fileUploadBtn.addEventListener('drop', function(e) {
+            e.preventDefault();
+            fileUploadBtn.style.borderColor = '';
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                imageInput.files = files;
+                // Trigger resize + preview giống như change handler
+                const event = new Event('change', { bubbles: true });
+                imageInput.dispatchEvent(event);
+            }
+        });
+
+        // ===== Drag & Drop for Ground Truth =====
+        gtUploadBtn.addEventListener('dragover', e => {
+            e.preventDefault();
+            gtUploadBtn.style.borderColor = '#7c5cfc';
+        });
+        gtUploadBtn.addEventListener('dragleave', () => {
+            gtUploadBtn.style.borderColor = '';
+        });
+        gtUploadBtn.addEventListener('drop', function(e) {
+            e.preventDefault();
+            gtUploadBtn.style.borderColor = '';
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                gtInput.files = files;
+                selectedGtFile = files[0];
+                gtFileName.textContent = selectedGtFile.name;
+                gtUploadBtn.classList.add('has-file');
+            }
+        });
+    </script>
+</body>
+</html>
