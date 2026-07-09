@@ -379,6 +379,13 @@
         }
         .stat-item .stat-icon { font-size: 20px; }
         .stat-item .stat-value { font-weight: 700; color: #00d4ff; }
+        .fps-note {
+            cursor: help;
+            opacity: 0.5;
+            font-size: 12px;
+            transition: opacity 0.2s;
+        }
+        .fps-note:hover { opacity: 1; }
 
         /* ===== Empty state ===== */
         .empty-state {
@@ -437,23 +444,6 @@
             display: block;
         }
 
-        /* ===== GT Size Mismatch Warning ===== */
-        .gt-warning {
-            display: none;
-            grid-column: 1 / -1;
-            background: rgba(255, 170, 0, 0.1);
-            border: 1px solid rgba(255, 170, 0, 0.3);
-            border-radius: 10px;
-            padding: 12px 18px;
-            align-items: center;
-            gap: 10px;
-            font-size: 13px;
-            color: #ffc107;
-        }
-        .gt-warning.visible { display: flex; }
-        .gt-warning .warn-icon { font-size: 20px; flex-shrink: 0; }
-        .gt-warning .warn-text strong { color: #ffc107; }
-
         /* ===== Error toast ===== */
         .toast {
             position: fixed;
@@ -476,6 +466,130 @@
             transform: translateY(0);
             opacity: 1;
         }
+
+        /* ===== Tabs ===== */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: #0b0e17;
+            border-radius: 12px;
+            padding: 4px;
+        }
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: #8892b0;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .tab-btn:hover {
+            color: #e8edf5;
+            background: rgba(255,255,255,0.04);
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #1e2640, #232e4a);
+            color: #e8edf5;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ===== Video Player ===== */
+        .video-container {
+            width: 100%;
+            background: #0b0e17;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .video-container .video-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .video-container .video-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .video-container .video-header .video-status {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(0,180,255,0.1);
+            color: #00d4ff;
+        }
+        .video-container .video-header .video-status.ready { color: #00c853; background: rgba(0,200,83,0.1); }
+        .video-container .video-header .video-status.error { color: #ff1744; background: rgba(255,23,68,0.1); }
+        .video-player-wrapper {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #070a12;
+            min-height: 216px; /* 384 * 0.5625 ≈ 216 cho 640x384 tỉ lệ */
+        }
+        .video-player-wrapper img {
+            width: 100%;
+            max-width: 640px;
+            display: block;
+        }
+        .video-container .video-footer {
+            padding: 12px 20px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 13px;
+            color: #8892b0;
+        }
+        .video-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .video-stats .stat {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .video-stats .stat .val {
+            font-weight: 700;
+            color: #00d4ff;
+        }
+        .btn-stop {
+            background: linear-gradient(135deg, #ff1744, #d50000);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-stop:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(255,23,68,0.3);
+        }
+        .btn-stop.visible { display: inline-flex; }
 
         /* ===== Responsive ===== */
         @media (max-width: 768px) {
@@ -517,79 +631,229 @@
     <div class="main">
         <!-- Controls -->
         <div class="controls">
-            <!-- Row 1: Model + Alpha + Button -->
-            <div class="controls-row">
-                <div class="control-group ctrl-model">
-                    <label for="modelSelect">🧠 Model</label>
-                    <select id="modelSelect">
-                        {% for m in models %}
-                        <option value="{{ m.name }}" {% if m.name == default_model %}selected{% endif %}
-                            data-iou="{{ m.get('iou_da', '') }}"
-                            data-f1="{{ m.get('f1', '') }}"
-                            data-fps="{{ m.get('fps', '') }}"
-                            data-params="{{ m.get('params', '') }}"
-                            data-gflops="{{ m.get('gflops', '') }}">
-                            {{ m.name }}
-                            {% if 'iou_da' in m %}— IoU_DA: {{ "%.4f"|format(m.iou_da) }}{% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="control-group ctrl-alpha">
-                    <label for="alphaSlider">🎨 Độ trong suốt</label>
-                    <div class="range-wrapper">
-                        <input type="range" id="alphaSlider" min="0.1" max="0.9" step="0.05" value="0.45">
-                        <span class="range-value" id="alphaValue">0.45</span>
-                    </div>
-                </div>
-
-                <button class="btn-predict ctrl-btn" id="predictBtn" disabled>
-                    <span class="btn-text">🚀 Phân đoạn</span>
-                    <span class="btn-loader"></span>
-                </button>
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="image">🖼️ Ảnh</button>
+                <button class="tab-btn" data-tab="video">🎬 Video</button>
             </div>
 
-            <!-- Row 2: Image Input + Ground Truth -->
-            <div class="controls-row">
-                <div class="control-group ctrl-img">
-                    <label for="imageInput">🖼️ Ảnh đầu vào</label>
-                    <div class="file-upload-wrapper">
-                        <input type="file" id="imageInput" accept=".jpg,.jpeg,.png">
-                        <div class="file-upload-btn" id="fileUploadBtn">
-                            <span>📁</span>
-                            <span id="fileName">Chọn ảnh (JPG)</span>
+            <!-- ===== TAB: Image ===== -->
+            <div class="tab-content active" id="tab-image">
+                <!-- Row 1: Model + Alpha + Button -->
+                <div class="controls-row">
+                    <div class="control-group ctrl-model">
+                        <label for="modelSelect">🧠 Model</label>
+                        <select id="modelSelect">
+                            {% for m in models %}
+                            <option value="{{ m.name }}" {% if m.name == default_model %}selected{% endif %}
+                                data-iou="{{ m.get('iou_da', '') }}"
+                                data-f1="{{ m.get('f1', '') }}"
+                                data-fps="{{ m.get('fps', '') }}"
+                                data-params="{{ m.get('params', '') }}"
+                                data-gflops="{{ m.get('gflops', '') }}">
+                                {{ m.name }}
+                                {% if 'iou_da' in m %}— IoU_DA: {{ "%.4f"|format(m.iou_da) }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="control-group ctrl-alpha">
+                        <label for="alphaSlider">🎨 Độ trong suốt</label>
+                        <div class="range-wrapper">
+                            <input type="range" id="alphaSlider" min="0.1" max="0.9" step="0.05" value="0.45">
+                            <span class="range-value" id="alphaValue">0.45</span>
+                        </div>
+                    </div>
+
+                    <button class="btn-predict ctrl-btn" id="predictBtn" disabled>
+                        <span class="btn-text">🚀 Phân đoạn</span>
+                        <span class="btn-loader"></span>
+                    </button>
+                </div>
+
+                <!-- Row 2: Image Input + Ground Truth -->
+                <div class="controls-row">
+                    <div class="control-group ctrl-img">
+                        <label for="imageInput">🖼️ Ảnh đầu vào</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="imageInput" accept=".jpg,.jpeg,.png">
+                            <div class="file-upload-btn" id="fileUploadBtn">
+                                <span>📁</span>
+                                <span id="fileName">Chọn ảnh (JPG)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-group ctrl-gt">
+                        <label for="gtInput">🏷️ Ground Truth (tuỳ chọn)</label>
+                        <div class="gt-upload-wrapper">
+                            <input type="file" id="gtInput" accept=".jpg,.jpeg,.png">
+                            <div class="gt-upload-btn" id="gtUploadBtn">
+                                <span>🏷️</span>
+                                <span id="gtFileName">Chọn mask ground truth</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="control-group ctrl-gt">
-                    <label for="gtInput">🏷️ Ground Truth (tuỳ chọn)</label>
-                    <div class="gt-upload-wrapper">
-                        <input type="file" id="gtInput" accept=".jpg,.jpeg,.png">
-                        <div class="gt-upload-btn" id="gtUploadBtn">
-                            <span>🏷️</span>
-                            <span id="gtFileName">Chọn mask ground truth</span>
+                <!-- Row 3: Preview 640x384 -->
+                <div class="controls-row" id="previewRow" style="display:none;">
+                    <div class="preview-container">
+                        <div class="preview-header">
+                            <span>📐 Preview — 640 × 384</span>
+                            <span class="preview-size-badge">Đã resize</span>
+                        </div>
+                        <div class="preview-image-wrapper">
+                            <img id="previewImage" alt="Preview 640x384">
+                        </div>
+                    </div>
+                </div>
+                <!-- ===== Kết quả phân đoạn ảnh ===== -->
+                <div class="results" id="results">
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-icon">🛣️</div>
+                        <h2>Chưa có kết quả</h2>
+                        <p>Chọn ảnh và nhấn "Phân đoạn" để bắt đầu dự đoán vùng làn đường.</p>
+                    </div>
+                    <div class="result-card" id="originalCard" style="display:none;">
+                        <div class="card-header">
+                            <h3>📷 Ảnh gốc</h3>
+                            <span class="badge">Input</span>
+                        </div>
+                        <div class="card-image">
+                            <img id="originalImage" alt="Ảnh gốc">
+                        </div>
+                        <div class="card-footer">Ảnh đầu vào</div>
+                    </div>
+                    <div class="result-card" id="resultCard" style="display:none;">
+                        <div class="card-header">
+                            <h3>🎯 Kết quả phân đoạn</h3>
+                            <span class="badge">Output</span>
+                        </div>
+                        <div class="card-image">
+                            <img id="resultImage" alt="Kết quả phân đoạn">
+                        </div>
+                        <div class="card-footer">Vùng màu xanh là <strong>Drivable Area</strong> (làn đường có thể lái)</div>
+                    </div>
+                    <div class="result-card" id="gtCard" style="display:none;">
+                        <div class="card-header">
+                            <h3>🏷️ Ground Truth</h3>
+                            <span class="badge">Reference</span>
+                        </div>
+                        <div class="card-image">
+                            <img id="gtImage" alt="Ground truth">
+                        </div>
+                        <div class="card-footer">Ảnh ground truth gốc — dùng để so sánh với kết quả dự đoán</div>
+                    </div>
+                    <div class="stats-bar" id="statsBar">
+                        <div class="stat-item">
+                            <span class="stat-icon">📐</span>
+                            <span>Drivable Area: <span class="stat-value" id="drivablePct">0%</span></span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">🧠</span>
+                            <span>Model: <span class="stat-value" id="resultModel">—</span></span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">⚡</span>
+                            <span>Thời gian: <span class="stat-value" id="inferenceTime">—</span></span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">🚀</span>
+                            <span>FPS: <span class="stat-value" id="imageFps">—</span>
+                                <span class="fps-note" title="FPS bị giới hạn bởi CPU, benchmark trên GPU cao hơn 40-180 FPS">💡</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="stats-bar" id="gtMetricsBar">
+                        <div class="stat-item">
+                            <span class="stat-icon">🎯</span>
+                            <span>IoU (dự đoán vs Ground Truth): <span class="stat-value" id="gtIou">—</span></span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Row 3: Preview 640x384 -->
-            <div class="controls-row" id="previewRow" style="display:none;">
-                <div class="preview-container">
-                    <div class="preview-header">
-                        <span>📐 Preview — 640 × 384</span>
-                        <span class="preview-size-badge">Đã resize</span>
+        <!-- ===== TAB: Video ===== -->
+        <div class="tab-content" id="tab-video">
+                <!-- Row 1: Model + Alpha -->
+                <div class="controls-row">
+                    <div class="control-group ctrl-model">
+                        <label for="videoModelSelect">🧠 Model</label>
+                        <select id="videoModelSelect">
+                            {% for m in models %}
+                            <option value="{{ m.name }}" {% if m.name == default_model %}selected{% endif %}
+                                data-iou="{{ m.get('iou_da', '') }}"
+                                data-f1="{{ m.get('f1', '') }}"
+                                data-fps="{{ m.get('fps', '') }}"
+                                data-params="{{ m.get('params', '') }}"
+                                data-gflops="{{ m.get('gflops', '') }}">
+                                {{ m.name }}
+                                {% if 'iou_da' in m %}— IoU_DA: {{ "%.4f"|format(m.iou_da) }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    <div class="preview-image-wrapper">
-                        <img id="previewImage" alt="Preview 640x384">
+
+                    <div class="control-group ctrl-alpha">
+                        <label for="videoAlphaSlider">🎨 Độ trong suốt</label>
+                        <div class="range-wrapper">
+                            <input type="range" id="videoAlphaSlider" min="0.1" max="0.9" step="0.05" value="0.45">
+                            <span class="range-value" id="videoAlphaValue">0.45</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 2: Video Input + Buttons -->
+                <div class="controls-row">
+                    <div class="control-group ctrl-img">
+                        <label for="videoInput">🎬 Video đầu vào</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="videoInput" accept=".mp4,.avi,.mov,.mkv,.webm">
+                            <div class="file-upload-btn" id="videoUploadBtn">
+                                <span>📁</span>
+                                <span id="videoFileName">Chọn video (MP4, AVI, MOV)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-group ctrl-btn">
+                        <label style="visibility:hidden;">&nbsp;</label>
+                        <button class="btn-predict" id="processVideoBtn" disabled>
+                            <span class="btn-text">▶️ Xử lý Video</span>
+                            <span class="btn-loader"></span>
+                        </button>
+                    </div>
+                </div>
+                <!-- ===== Kết quả phân đoạn video ===== -->
+                <div class="video-container" id="videoResult" style="display:none;">
+                    <div class="video-header">
+                        <h3>🎬 Kết quả phân đoạn video</h3>
+                        <div>
+                            <span class="video-status" id="videoStatus">⏳ Đang xử lý...</span>
+                            <button class="btn-stop" id="stopVideoBtn">⏹ Dừng</button>
+                        </div>
+                    </div>
+                    <div class="video-player-wrapper">
+                        <img id="videoStream" alt="Video stream">
+                        <div id="videoPlaceholder" style="display:flex; flex-direction:column; align-items:center; gap:12px; color:#8892b0; padding:40px;">
+                            <span style="font-size:48px;">🎥</span>
+                            <span>Chọn video và nhấn "Xử lý Video" để bắt đầu</span>
+                        </div>
+                    </div>
+                    <div class="video-footer">
+                        <div class="video-stats">
+                            <span class="stat">📊 Frame: <span class="val" id="videoFrameCount">0</span></span>
+                            <span class="stat">⚡ FPS: <span class="val" id="videoFps">0</span></span>
+                            <span class="stat">📐 DA: <span class="val" id="videoDrivablePct">0%</span></span>
+                            <span class="stat">⏱️ Latency: <span class="val" id="videoLatency">0 ms</span></span>
+                        </div>
+                        <span id="videoFileName_display" style="font-size:12px;color:#555;"></span>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Model Info -->
+    </div>
         <div class="model-info" id="modelInfo">
             <div class="metric-item">
                 <span class="metric-label">IoU Drivable Area</span>
@@ -610,99 +874,6 @@
             <div class="metric-item">
                 <span class="metric-label">GFLOPs</span>
                 <span class="metric-value" id="gflopsDisplay">—</span>
-            </div>
-        </div>
-
-        <!-- Results -->
-        <div class="results" id="results">
-            <div class="empty-state" id="emptyState">
-                <div class="empty-icon">🛣️</div>
-                <h2>Chưa có kết quả</h2>
-                <p>Chọn ảnh và nhấn "Phân đoạn" để bắt đầu dự đoán vùng làn đường.</p>
-            </div>
-
-            <div class="result-card" id="originalCard" style="display:none;">
-                <div class="card-header">
-                    <h3>📷 Ảnh gốc</h3>
-                    <span class="badge">Input</span>
-                </div>
-                <div class="card-image">
-                    <img id="originalImage" alt="Ảnh gốc">
-                </div>
-                <div class="card-footer">
-                    Ảnh đầu vào
-                </div>
-            </div>
-
-            <div class="result-card" id="resultCard" style="display:none;">
-                <div class="card-header">
-                    <h3>🎯 Kết quả phân đoạn</h3>
-                    <span class="badge">Output</span>
-                </div>
-                <div class="card-image">
-                    <img id="resultImage" alt="Kết quả phân đoạn">
-                </div>
-                <div class="card-footer">
-                    Vùng màu xanh là <strong>Drivable Area</strong> (làn đường có thể lái)
-                </div>
-            </div>
-
-            <!-- GT size mismatch warning -->
-            <div class="gt-warning" id="gtWarning">
-                <span class="warn-icon">⚠️</span>
-                <span class="warn-text">
-                    <strong>Kích thước không khớp!</strong>
-                    Ảnh ground truth có kích thước khác với ảnh gốc. Đã tự động resize để hiển thị.
-                </span>
-            </div>
-
-            <div class="result-card" id="gtCard" style="display:none;">
-                <div class="card-header">
-                    <h3>🏷️ Ground Truth</h3>
-                    <span class="badge">Reference</span>
-                </div>
-                <div class="card-image">
-                    <img id="gtImage" alt="Ground truth">
-                </div>
-                <div class="card-footer">
-                    Ảnh ground truth gốc — dùng để so sánh với kết quả dự đoán
-                </div>
-            </div>
-
-            <!-- Stats bar -->
-            <div class="stats-bar" id="statsBar">
-                <div class="stat-item">
-                    <span class="stat-icon">📐</span>
-                    <span>Drivable Area: <span class="stat-value" id="drivablePct">0%</span></span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-icon">🧠</span>
-                    <span>Model: <span class="stat-value" id="resultModel">—</span></span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-icon">⚡</span>
-                    <span>Thời gian: <span class="stat-value" id="inferenceTime">—</span></span>
-                </div>
-            </div>
-
-            <!-- So sánh metrics (chỉ hiện khi có ground truth) -->
-            <div class="stats-bar" id="gtMetricsBar">
-                <div class="stat-item">
-                    <span class="stat-icon">🎯</span>
-                    <span>IoU vs GT: <span class="stat-value" id="gtIou">—</span></span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-icon">📊</span>
-                    <span>F1 vs GT: <span class="stat-value" id="gtF1">—</span></span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-icon">🎯</span>
-                    <span>Precision: <span class="stat-value" id="gtPrecision">—</span></span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-icon">🎯</span>
-                    <span>Recall: <span class="stat-value" id="gtRecall">—</span></span>
-                </div>
             </div>
         </div>
     </div>
@@ -740,12 +911,9 @@
         const drivablePct = document.getElementById('drivablePct');
         const resultModel = document.getElementById('resultModel');
         const inferenceTime = document.getElementById('inferenceTime');
+        const imageFps = document.getElementById('imageFps');
         const gtIou = document.getElementById('gtIou');
-        const gtF1 = document.getElementById('gtF1');
-        const gtPrecision = document.getElementById('gtPrecision');
-        const gtRecall = document.getElementById('gtRecall');
 
-        const gtWarning = document.getElementById('gtWarning');
         const gtInput = document.getElementById('gtInput');
         const gtUploadBtn = document.getElementById('gtUploadBtn');
         const gtFileName = document.getElementById('gtFileName');
@@ -757,18 +925,69 @@
         let selectedGtFile = null;
         let resizedImageBlob = null;
 
+        // ===== Video state =====
+        let selectedVideoFile = null;
+        let videoStreamActive = false;
+        let videoStreamUrl = null;
+
         // Canvas để resize ảnh xuống 640x384 ngay trên client
         const resizeCanvas = document.createElement('canvas');
         resizeCanvas.width = 640;
         resizeCanvas.height = 384;
         const resizeCtx = resizeCanvas.getContext('2d');
 
+        // ===== Video DOM Elements =====
+        const videoInput = document.getElementById('videoInput');
+        const videoUploadBtn = document.getElementById('videoUploadBtn');
+        const videoFileName = document.getElementById('videoFileName');
+        const processVideoBtn = document.getElementById('processVideoBtn');
+        const stopVideoBtn = document.getElementById('stopVideoBtn');
+        const videoResult = document.getElementById('videoResult');
+        const videoStream = document.getElementById('videoStream');
+        const videoPlaceholder = document.getElementById('videoPlaceholder');
+        const videoStatus = document.getElementById('videoStatus');
+        const videoFrameCount = document.getElementById('videoFrameCount');
+        const videoFps = document.getElementById('videoFps');
+        const videoDrivablePct = document.getElementById('videoDrivablePct');
+        const videoLatency = document.getElementById('videoLatency');
+        const videoFileNameDisplay = document.getElementById('videoFileName_display');
+        const videoModelSelect = document.getElementById('videoModelSelect');
+        const videoAlphaSlider = document.getElementById('videoAlphaSlider');
+        const videoAlphaValue = document.getElementById('videoAlphaValue');
+
+        // ===== Tabs =====
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+                // Dừng video khi chuyển tab
+                if (this.dataset.tab !== 'video' && videoStreamActive) {
+                    stopVideoStream();
+                }
+            });
+        });
+
+        // ===== Video Alpha Slider =====
+        videoAlphaSlider.addEventListener('input', function() {
+            videoAlphaValue.textContent = parseFloat(this.value).toFixed(2);
+        });
+
         // ===== Device check =====
         async function checkDevice() {
             try {
-                const res = await fetch('/api/models');
-                if (res.ok) deviceInfo.textContent = '✅ GPU ready' + (navigator.gpu ? '' : '');
-                else deviceInfo.textContent = '⚠️ Server connected';
+                const res = await fetch('/api/device');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.cuda_available) {
+                        deviceInfo.textContent = '✅ GPU (' + data.cuda_version + ')';
+                    } else {
+                        deviceInfo.textContent = '🧠 CPU';
+                    }
+                } else {
+                    deviceInfo.textContent = '⚠️ Server connected';
+                }
             } catch {
                 deviceInfo.textContent = '❌ Server offline';
             }
@@ -840,6 +1059,156 @@
                 predictBtn.disabled = true;
                 document.getElementById('previewRow').style.display = 'none';
                 resizedImageBlob = null;
+            }
+        });
+
+        // ===== Video File Input =====
+        videoInput.addEventListener('change', function(e) {
+            selectedVideoFile = e.target.files[0];
+            if (selectedVideoFile) {
+                videoFileName.textContent = selectedVideoFile.name;
+                videoUploadBtn.classList.add('has-file');
+                processVideoBtn.disabled = false;
+                // Reset video result
+                videoResult.style.display = 'none';
+                if (videoStreamActive) {
+                    stopVideoStream();
+                }
+            } else {
+                videoFileName.textContent = 'Chọn video (MP4, AVI, MOV)';
+                videoUploadBtn.classList.remove('has-file');
+                processVideoBtn.disabled = true;
+            }
+        });
+
+        // ===== Drag & Drop for Video =====
+        videoUploadBtn.addEventListener('dragover', e => {
+            e.preventDefault();
+            videoUploadBtn.style.borderColor = '#00d4ff';
+        });
+        videoUploadBtn.addEventListener('dragleave', () => {
+            videoUploadBtn.style.borderColor = '';
+        });
+        videoUploadBtn.addEventListener('drop', function(e) {
+            e.preventDefault();
+            videoUploadBtn.style.borderColor = '';
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                videoInput.files = files;
+                const event = new Event('change', { bubbles: true });
+                videoInput.dispatchEvent(event);
+            }
+        });
+
+        // ===== Stop Video =====
+        function stopVideoStream() {
+            videoStreamActive = false;
+            videoStream.src = '';
+            videoStream.onload = null;
+            processVideoBtn.disabled = false;
+            processVideoBtn.querySelector('.btn-text').textContent = '▶️ Xử lý Video';
+            processVideoBtn.classList.remove('loading');
+            stopVideoBtn.classList.remove('visible');
+            videoStatus.textContent = '⏹ Đã dừng';
+            videoStatus.className = 'video-status';
+        }
+
+        stopVideoBtn.addEventListener('click', stopVideoStream);
+
+        // ===== Process Video =====
+        processVideoBtn.addEventListener('click', async function() {
+            if (!selectedVideoFile) {
+                showToast('Vui lòng chọn video trước!');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('video', selectedVideoFile);
+            formData.append('model', videoModelSelect.value);
+            formData.append('alpha', videoAlphaSlider.value);
+            formData.append('img_h', '384');
+            formData.append('img_w', '640');
+
+            // UI
+            processVideoBtn.disabled = true;
+            processVideoBtn.querySelector('.btn-text').textContent = '⏳ Đang tải lên...';
+            processVideoBtn.classList.add('loading');
+            videoResult.style.display = 'block';
+            videoPlaceholder.style.display = 'none';
+            videoStream.style.display = 'block';
+            videoStatus.textContent = '⏳ Đang tải video lên server...';
+            videoStatus.className = 'video-status';
+            videoFileNameDisplay.textContent = selectedVideoFile.name;
+            videoFrameCount.textContent = '0';
+            videoFps.textContent = '0';
+            videoDrivablePct.textContent = '0%';
+            videoLatency.textContent = '0 ms';
+
+            try {
+                // Bước 1: Upload video, nhận stream URL
+                const res = await fetch('/api/predict_video', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Lỗi khi tải video');
+                }
+
+                const data = await res.json();
+                const streamUrl = data.stream_url;
+
+                // Bước 2: Gán <img> src vào stream URL → MJPEG tự động render
+                videoStreamActive = true;
+                stopVideoBtn.classList.add('visible');
+                videoStream.src = streamUrl;
+                videoStatus.textContent = '📡 Đang phát stream realtime...';
+                videoStatus.className = 'video-status';
+                processVideoBtn.querySelector('.btn-text').textContent = '▶️ Xử lý Video';
+
+                // Theo dõi FPS và frame count từ sự kiện load của ảnh
+                let lastFrameTime = performance.now();
+                let frameCount = 0;
+                let fpsCounter = 0;
+                let fpsTimer = lastFrameTime;
+
+                videoStream.onload = function() {
+                    if (!videoStreamActive) return;
+                    frameCount++;
+                    fpsCounter++;
+                    const now = performance.now();
+
+                    // Cập nhật frame count
+                    videoFrameCount.textContent = frameCount;
+
+                    // Tính FPS mỗi giây
+                    if (now - fpsTimer >= 1000) {
+                        videoFps.textContent = fpsCounter;
+                        fpsCounter = 0;
+                        fpsTimer = now;
+                    }
+                };
+
+                // Khi stream kết thúc (server đóng kết nối)
+                videoStream.onerror = function() {
+                    if (videoStreamActive) {
+                        videoStatus.textContent = '✅ Xử lý hoàn tất';
+                        videoStatus.className = 'video-status';
+                        processVideoBtn.disabled = false;
+                        processVideoBtn.querySelector('.btn-text').textContent = '▶️ Xử lý Video';
+                        processVideoBtn.classList.remove('loading');
+                        stopVideoBtn.classList.remove('visible');
+                        videoStreamActive = false;
+                    }
+                };
+
+            } catch (err) {
+                showToast('❌ ' + err.message);
+                console.error(err);
+                stopVideoStream();
+                videoStatus.textContent = '❌ Lỗi: ' + err.message;
+                videoStatus.className = 'video-status error';
             }
         });
 
@@ -931,24 +1300,13 @@
                     results.classList.add('has-gt');
                     gtImage.src = 'data:image/png;base64,' + data.ground_truth;
 
-                    // Cảnh báo nếu kích thước không khớp
-                    if (data.gt_size_mismatch) {
-                        gtWarning.classList.add('visible');
-                    } else {
-                        gtWarning.classList.remove('visible');
-                    }
-
                     // Metrics so sánh
                     if (data.gt_metrics) {
                         gtMetricsBar.classList.add('visible');
                         gtIou.textContent = data.gt_metrics.iou_gt;
-                        gtF1.textContent = data.gt_metrics.f1_gt;
-                        gtPrecision.textContent = data.gt_metrics.precision_gt;
-                        gtRecall.textContent = data.gt_metrics.recall_gt;
                     }
                 } else {
                     gtCard.style.display = 'none';
-                    gtWarning.classList.remove('visible');
                 }
 
                 // Stats
@@ -958,6 +1316,16 @@
 
                 const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
                 inferenceTime.textContent = elapsed + 's';
+
+                // FPS — ưu tiên inference_ms từ server, fallback client time
+                let fps;
+                if (data.inference_ms && data.inference_ms > 0) {
+                    fps = (1000 / data.inference_ms).toFixed(1);
+                } else {
+                    const elapsedSec = (performance.now() - t0) / 1000;
+                    fps = elapsedSec > 0 ? (1 / elapsedSec).toFixed(1) : '—';
+                }
+                imageFps.textContent = fps !== '—' ? fps + ' fps' : '—';
 
             } catch (err) {
                 showToast('❌ ' + err.message);
