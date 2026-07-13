@@ -7,3 +7,4 @@ opencv-python
 numpy
 tqdm
 pillow
+flask
