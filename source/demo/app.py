@@ -23,6 +23,7 @@ from utils import load_weights, preprocess_image, overlay_mask, MEAN, STD
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = ROOT / "demo" / "uploads"
+app.config["UPLOAD_FOLDER"].mkdir(parents=True, exist_ok=True)
 app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024  # 500 MB
 app.secret_key = "kltn_drivable_seg_2026"
 
